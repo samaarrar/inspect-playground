@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inspect Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<meta name="description" content="Change the design and the CSS follows. A small playground by Sama Arrar.">
+<style>
+/* Layout: one stage — design canvas on the left, live code panel on the right, controls underneath. Dark only, matching the GitHub profile. */
+:root{
+  color-scheme:dark;
+  --bg:#0D1117; --canvas:#15151A; --panel:#141416; --panel-2:#1E1E23; --line:#2E2E36;
+  --fg:#F2F2F4; --muted:#A6A6AE; --dim:#6E7681;
+  --accent:#B48CFF; --select:#4DB2FF; --green:#4CD38A;
+  --c-prop:#79C0FF; --c-val:#FFA657;
+  --display:'Bricolage Grotesque',ui-sans-serif,system-ui,sans-serif;
+  --body:'Instrument Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 56px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+header{display:flex;flex-direction:column;gap:8px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.eyebrow b{color:var(--accent);font-weight:400}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,52px);letter-spacing:-.03em;line-height:1;margin:0;text-wrap:balance}
+h1 i{font-style:normal;color:var(--accent)}
+.lede{color:var(--muted);margin:0;max-width:60ch}
+
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:stretch}
+@media (max-width:760px){.stage{grid-template-columns:minmax(0,1fr)}}
+
+.canvas{position:relative;min-height:340px;border-radius:16px;background:
+  radial-gradient(circle at 50% 50%,rgba(180,140,255,.16),transparent 62%),
+  radial-gradient(circle,#2A2A31 1.1px,transparent 1.2px) 0 0/18px 18px,var(--canvas);
+  display:grid;place-items:center;overflow:hidden;border:1px solid var(--line)}
+.canvas .tag-top{position:absolute;top:14px;left:16px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.1em}
+.canvas .hint{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.obj{position:relative;display:flex;flex-direction:column;align-items:center}
+.cat{width:57px;height:51px;image-rendering:pixelated;margin-bottom:6px;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.cat.hop{transform:translateY(-18px)}
+.sel{position:relative;padding:6px;outline:1.3px solid var(--select)}
+.sel i{position:absolute;width:7px;height:7px;background:var(--canvas);border:1.3px solid var(--select)}
+.sel i:nth-child(1){top:-3.5px;left:-3.5px}.sel i:nth-child(2){top:-3.5px;right:-3.5px}
+.sel i:nth-child(3){bottom:-3.5px;left:-3.5px}.sel i:nth-child(4){bottom:-3.5px;right:-3.5px}
+#btn{font-family:var(--body);font-weight:600;font-size:15px;color:#141416;border:0;cursor:pointer;
+  transition:all .45s cubic-bezier(.6,0,.2,1);white-space:nowrap}
+#btn:focus-visible{outline:2px dashed var(--fg);outline-offset:4px}
+.size{margin-top:12px;font-family:var(--mono);font-size:11px;font-weight:600;background:var(--select);color:#0E0E10;padding:2px 8px;border-radius:4px;font-variant-numeric:tabular-nums}
+.heart{position:absolute;pointer-events:none;color:var(--accent);font-size:14px;animation:up 1s ease-out forwards}
+@keyframes up{from{opacity:1;transform:translate(0,0)}to{opacity:0;transform:translate(var(--dx),-60px)}}
+
+.code{border-radius:16px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.tabs{display:flex;align-items:center;gap:18px;padding:0 16px;height:42px;background:var(--panel-2);border-bottom:1px solid var(--line);font-size:12.5px;font-weight:600}
+.tabs span{color:var(--muted)}
+.tabs .on{color:var(--fg);box-shadow:inset 0 -2px var(--accent);height:100%;display:flex;align-items:center}
+.tabs .live{margin-left:auto;font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tabs .live::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.3}}
+pre{margin:0;padding:18px 20px;font-family:var(--mono);font-size:13.5px;line-height:1.85;overflow-x:auto;flex:1}
+.sl{color:var(--accent)}.pr{color:var(--c-prop)}.va{color:var(--c-val)}.cm{color:var(--dim)}
+.va.flash{animation:fl .6s}
+@keyframes fl{from{background:rgba(180,140,255,.28)}to{background:transparent}}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:6px;border:1px solid var(--line)}
+.code-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--dim)}
+.copy{font-family:var(--body);font-weight:600;font-size:12.5px;color:var(--fg);background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.copy:hover{border-color:var(--accent)}
+.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;padding:20px;border-radius:16px;border:1px solid var(--line);background:var(--canvas)}
+@media (max-width:760px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.controls{grid-template-columns:minmax(0,1fr)}}
+.ctl{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ctl label,.ctl .lab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+.ctl label output{color:var(--fg);letter-spacing:0;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=text]{font-family:var(--body);font-size:14px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;outline-offset:2px}
+.swatches button[aria-pressed=true]{border-color:var(--fg)}
+.swatches button:focus-visible{outline:2px solid var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.presets .lab{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.presets button{font-family:var(--mono);font-size:12px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+.presets button:hover,.presets button:focus-visible{border-color:var(--accent);outline:none}
+footer{font-family:var(--mono);font-size:11px;color:var(--dim)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">samaarrar · <b>try it live</b></div>
+    <h1>Inspect <i>playground</i></h1>
+    <p class="lede">Change the design and the CSS follows. Drag the sliders, pick a colour, or rename the button. Click the button to pet noirkoshka.</p>
+  </header>
+
+  <section class="stage">
+    <div class="canvas" id="canvas">
+      <span class="tag-top">FRAME · BUTTON</span>
+      <div class="obj">
+        <svg class="cat" id="cat" viewBox="0 0 19 17" shape-rendering="crispEdges" aria-hidden="true"><rect x="3" y="0" width="1" height="1" fill="#0E0E10"/><rect x="11" y="0" width="1" height="1" fill="#0E0E10"/><rect x="2" y="1" width="1" height="1" fill="#0E0E10"/><rect x="3" y="1" width="1" height="1" fill="#0E0E10"/><rect x="10" y="1" width="1" height="1" fill="#0E0E10"/><rect x="11" y="1" width="1" height="1" fill="#0E0E10"/><rect x="2" y="2" width="1" height="1" fill="#0E0E10"/><rect x="3" y="2" width="1" height="1" fill="#0E0E10"/><rect x="4" y="2" width="1" height="1" fill="#0E0E10"/><rect x="9" y="2" width="1" height="1" fill="#0E0E10"/><rect x="10" y="2" width="1" height="1" fill="#0E0E10"/><rect x="11" y="2" width="1" height="1" fill="#0E0E10"/><rect x="2" y="3" width="1" height="1" fill="#0E0E10"/><rect x="3" y="3" width="1" height="1" fill="#0E0E10"/><rect x="4" y="3" width="1" height="1" fill="#0E0E10"/><rect x="5" y="3" width="1" height="1" fill="#0E0E10"/><rect x="6" y="3" width="1" height="1" fill="#0E0E10"/><rect x="7" y="3" width="1" height="1" fill="#0E0E10"/><rect x="8" y="3" width="1" height="1" fill="#0E0E10"/><rect x="9" y="3" width="1" height="1" fill="#0E0E10"/><rect x="10" y="3" width="1" height="1" fill="#0E0E10"/><rect x="11" y="3" width="1" height="1" fill="#0E0E10"/><rect x="1" y="4" width="1" height="1" fill="#0E0E10"/><rect x="2" y="4" width="1" height="1" fill="#0E0E10"/><rect x="3" y="4" width="1" height="1" fill="#0E0E10"/><rect x="4" y="4" width="1" height="1" fill="#0E0E10"/><rect x="5" y="4" width="1" height="1" fill="#0E0E10"/><rect x="6" y="4" width="1" height="1" fill="#0E0E10"/><rect x="7" y="4" width="1" height="1" fill="#0E0E10"/><rect x="8" y="4" width="1" height="1" fill="#0E0E10"/><rect x="9" y="4" width="1" height="1" fill="#0E0E10"/><rect x="10" y="4" width="1" height="1" fill="#0E0E10"/><rect x="11" y="4" width="1" height="1" fill="#0E0E10"/><rect x="12" y="4" width="1" height="1" fill="#0E0E10"/><rect x="1" y="5" width="1" height="1" fill="#0E0E10"/><rect x="2" y="5" width="1" height="1" fill="#0E0E10"/><rect x="3" y="5" width="1" height="1" fill="#0E0E10"/><rect x="4" y="5" width="1" height="1" fill="#F2F2F4"/><rect x="5" y="5" width="1" height="1" fill="#F2F2F4"/><rect x="6" y="5" width="1" height="1" fill="#0E0E10"/><rect x="7" y="5" width="1" height="1" fill="#0E0E10"/><rect x="8" y="5" width="1" height="1" fill="#0E0E10"/><rect x="9" y="5" width="1" height="1" fill="#F2F2F4"/><rect x="10" y="5" width="1" height="1" fill="#F2F2F4"/><rect x="11" y="5" width="1" height="1" fill="#0E0E10"/><rect x="12" y="5" width="1" height="1" fill="#0E0E10"/><rect x="1" y="6" width="1" height="1" fill="#0E0E10"/><rect x="2" y="6" width="1" height="1" fill="#0E0E10"/><rect x="3" y="6" width="1" height="1" fill="#0E0E10"/><rect x="4" y="6" width="1" height="1" fill="#F2F2F4"/><rect x="5" y="6" width="1" height="1" fill="#F2F2F4"/><rect x="6" y="6" width="1" height="1" fill="#0E0E10"/><rect x="7" y="6" width="1" height="1" fill="#0E0E10"/><rect x="8" y="6" width="1" height="1" fill="#0E0E10"/><rect x="9" y="6" width="1" height="1" fill="#F2F2F4"/><rect x="10" y="6" width="1" height="1" fill="#F2F2F4"/><rect x="11" y="6" width="1" height="1" fill="#0E0E10"/><rect x="12" y="6" width="1" height="1" fill="#0E0E10"/><rect x="1" y="7" width="1" height="1" fill="#0E0E10"/><rect x="2" y="7" width="1" height="1" fill="#0E0E10"/><rect x="3" y="7" width="1" height="1" fill="#0E0E10"/><rect x="4" y="7" width="1" height="1" fill="#0E0E10"/><rect x="5" y="7" width="1" height="1" fill="#0E0E10"/><rect x="6" y="7" width="1" height="1" fill="#0E0E10"/><rect x="7" y="7" width="1" height="1" fill="#0E0E10"/><rect x="8" y="7" width="1" height="1" fill="#0E0E10"/><rect x="9" y="7" width="1" height="1" fill="#0E0E10"/><rect x="10" y="7" width="1" height="1" fill="#0E0E10"/><rect x="11" y="7" width="1" height="1" fill="#0E0E10"/><rect x="12" y="7" width="1" height="1" fill="#0E0E10"/><rect x="2" y="8" width="1" height="1" fill="#0E0E10"/><rect x="3" y="8" width="1" height="1" fill="#0E0E10"/><rect x="4" y="8" width="1" height="1" fill="#0E0E10"/><rect x="5" y="8" width="1" height="1" fill="#0E0E10"/><rect x="6" y="8" width="1" height="1" fill="#0E0E10"/><rect x="7" y="8" width="1" height="1" fill="#0E0E10"/><rect x="8" y="8" width="1" height="1" fill="#0E0E10"/><rect x="9" y="8" width="1" height="1" fill="#0E0E10"/><rect x="10" y="8" width="1" height="1" fill="#0E0E10"/><rect x="11" y="8" width="1" height="1" fill="#0E0E10"/><rect x="3" y="9" width="1" height="1" fill="#0E0E10"/><rect x="4" y="9" width="1" height="1" fill="#0E0E10"/><rect x="5" y="9" width="1" height="1" fill="#0E0E10"/><rect x="6" y="9" width="1" height="1" fill="#0E0E10"/><rect x="7" y="9" width="1" height="1" fill="#0E0E10"/><rect x="8" y="9" width="1" height="1" fill="#0E0E10"/><rect x="9" y="9" width="1" height="1" fill="#0E0E10"/><rect x="10" y="9" width="1" height="1" fill="#0E0E10"/><rect x="2" y="10" width="1" height="1" fill="#0E0E10"/><rect x="3" y="10" width="1" height="1" fill="#0E0E10"/><rect x="4" y="10" width="1" height="1" fill="#0E0E10"/><rect x="5" y="10" width="1" height="1" fill="#0E0E10"/><rect x="6" y="10" width="1" height="1" fill="#0E0E10"/><rect x="7" y="10" width="1" height="1" fill="#0E0E10"/><rect x="8" y="10" width="1" height="1" fill="#0E0E10"/><rect x="9" y="10" width="1" height="1" fill="#0E0E10"/><rect x="10" y="10" width="1" height="1" fill="#0E0E10"/><rect x="11" y="10" width="1" height="1" fill="#0E0E10"/><rect x="1" y="11" width="1" height="1" fill="#0E0E10"/><rect x="2" y="11" width="1" height="1" fill="#0E0E10"/><rect x="3" y="11" width="1" height="1" fill="#0E0E10"/><rect x="4" y="11" width="1" height="1" fill="#0E0E10"/><rect x="5" y="11" width="1" height="1" fill="#0E0E10"/><rect x="6" y="11" width="1" height="1" fill="#0E0E10"/><rect x="7" y="11" width="1" height="1" fill="#0E0E10"/><rect x="8" y="11" width="1" height="1" fill="#0E0E10"/><rect x="9" y="11" width="1" height="1" fill="#0E0E10"/><rect x="10" y="11" width="1" height="1" fill="#0E0E10"/><rect x="11" y="11" width="1" height="1" fill="#0E0E10"/><rect x="12" y="11" width="1" height="1" fill="#0E0E10"/><rect x="16" y="11" width="1" height="1" fill="#0E0E10"/><rect x="17" y="11" width="1" height="1" fill="#0E0E10"/><rect x="1" y="12" width="1" height="1" fill="#0E0E10"/><rect x="2" y="12" width="1" height="1" fill="#0E0E10"/><rect x="3" y="12" width="1" height="1" fill="#0E0E10"/><rect x="4" y="12" width="1" height="1" fill="#0E0E10"/><rect x="5" y="12" width="1" height="1" fill="#0E0E10"/><rect x="6" y="12" width="1" height="1" fill="#0E0E10"/><rect x="7" y="12" width="1" height="1" fill="#0E0E10"/><rect x="8" y="12" width="1" height="1" fill="#0E0E10"/><rect x="9" y="12" width="1" height="1" fill="#0E0E10"/><rect x="10" y="12" width="1" height="1" fill="#0E0E10"/><rect x="11" y="12" width="1" height="1" fill="#0E0E10"/><rect x="12" y="12" width="1" height="1" fill="#0E0E10"/><rect x="17" y="12" width="1" height="1" fill="#0E0E10"/><rect x="18" y="12" width="1" height="1" fill="#0E0E10"/><rect x="1" y="13" width="1" height="1" fill="#0E0E10"/><rect x="2" y="13" width="1" height="1" fill="#0E0E10"/><rect x="3" y="13" width="1" height="1" fill="#0E0E10"/><rect x="4" y="13" width="1" height="1" fill="#0E0E10"/><rect x="5" y="13" width="1" height="1" fill="#0E0E10"/><rect x="6" y="13" width="1" height="1" fill="#0E0E10"/><rect x="7" y="13" width="1" height="1" fill="#0E0E10"/><rect x="8" y="13" width="1" height="1" fill="#0E0E10"/><rect x="9" y="13" width="1" height="1" fill="#0E0E10"/><rect x="10" y="13" width="1" height="1" fill="#0E0E10"/><rect x="11" y="13" width="1" height="1" fill="#0E0E10"/><rect x="12" y="13" width="1" height="1" fill="#0E0E10"/><rect x="17" y="13" width="1" height="1" fill="#0E0E10"/><rect x="18" y="13" width="1" height="1" fill="#0E0E10"/><rect x="1" y="14" width="1" height="1" fill="#0E0E10"/><rect x="2" y="14" width="1" height="1" fill="#0E0E10"/><rect x="3" y="14" width="1" height="1" fill="#0E0E10"/><rect x="4" y="14" width="1" height="1" fill="#0E0E10"/><rect x="5" y="14" width="1" height="1" fill="#0E0E10"/><rect x="6" y="14" width="1" height="1" fill="#0E0E10"/><rect x="7" y="14" width="1" height="1" fill="#0E0E10"/><rect x="8" y="14" width="1" height="1" fill="#0E0E10"/><rect x="9" y="14" width="1" height="1" fill="#0E0E10"/><rect x="10" y="14" width="1" height="1" fill="#0E0E10"/><rect x="11" y="14" width="1" height="1" fill="#0E0E10"/><rect x="12" y="14" width="1" height="1" fill="#0E0E10"/><rect x="13" y="14" width="1" height="1" fill="#0E0E10"/><rect x="16" y="14" width="1" height="1" fill="#0E0E10"/><rect x="17" y="14" width="1" height="1" fill="#0E0E10"/><rect x="1" y="15" width="1" height="1" fill="#0E0E10"/><rect x="2" y="15" width="1" height="1" fill="#0E0E10"/><rect x="3" y="15" width="1" height="1" fill="#0E0E10"/><rect x="4" y="15" width="1" height="1" fill="#0E0E10"/><rect x="5" y="15" width="1" height="1" fill="#0E0E10"/><rect x="6" y="15" width="1" height="1" fill="#0E0E10"/><rect x="7" y="15" width="1" height="1" fill="#0E0E10"/><rect x="8" y="15" width="1" height="1" fill="#0E0E10"/><rect x="9" y="15" width="1" height="1" fill="#0E0E10"/><rect x="10" y="15" width="1" height="1" fill="#0E0E10"/><rect x="11" y="15" width="1" height="1" fill="#0E0E10"/><rect x="12" y="15" width="1" height="1" fill="#0E0E10"/><rect x="13" y="15" width="1" height="1" fill="#0E0E10"/><rect x="14" y="15" width="1" height="1" fill="#0E0E10"/><rect x="15" y="15" width="1" height="1" fill="#0E0E10"/><rect x="16" y="15" width="1" height="1" fill="#0E0E10"/><rect x="2" y="16" width="1" height="1" fill="#0E0E10"/><rect x="3" y="16" width="1" height="1" fill="#0E0E10"/><rect x="4" y="16" width="1" height="1" fill="#0E0E10"/><rect x="6" y="16" width="1" height="1" fill="#0E0E10"/><rect x="7" y="16" width="1" height="1" fill="#0E0E10"/><rect x="8" y="16" width="1" height="1" fill="#0E0E10"/><rect x="9" y="16" width="1" height="1" fill="#0E0E10"/><rect x="11" y="16" width="1" height="1" fill="#0E0E10"/><rect x="12" y="16" width="1" height="1" fill="#0E0E10"/><rect x="13" y="16" width="1" height="1" fill="#0E0E10"/><rect x="14" y="16" width="1" height="1" fill="#0E0E10"/><rect x="15" y="16" width="1" height="1" fill="#0E0E10"/><rect class="pupil" x="5" y="6" width="1" height="1" fill="#B48CFF"/><rect class="pupil" x="10" y="6" width="1" height="1" fill="#B48CFF"/></svg>
+        <div class="sel"><i></i><i></i><i></i><i></i><button id="btn" type="button">Say hello</button></div>
+        <span class="size" id="size">132 × 42</span>
+      </div>
+      <span class="hint" id="hint">pets: 0</span>
+    </div>
+
+    <div class="code">
+      <div class="tabs"><span>Design</span><span class="on">Code</span><span class="live">live</span></div>
+<pre id="css" aria-live="polite"></pre>
+      <div class="code-foot"><span>// change the design, the code follows</span><button class="copy" id="copy" type="button">Copy CSS</button></div>
+    </div>
+  </section>
+
+  <section class="controls" aria-label="Button properties">
+    <div class="ctl"><label for="px">Padding X <output id="pxo">24px</output></label><input id="px" type="range" min="8" max="48" value="24"></div>
+    <div class="ctl"><label for="py">Padding Y <output id="pyo">12px</output></label><input id="py" type="range" min="6" max="28" value="12"></div>
+    <div class="ctl"><label for="rad">Radius <output id="rado">21px</output></label><input id="rad" type="range" min="0" max="40" value="21"></div>
+    <div class="ctl"><label for="txt">Label <output></output></label><input id="txt" type="text" value="Say hello" maxlength="22"></div>
+    <div class="ctl" style="grid-column:1/-1"><span class="lab">Background</span>
+      <div class="swatches" id="sw"></div>
+    </div>
+  </section>
+
+  <div class="presets"><span class="lab">Themes</span>
+    <button type="button" data-p="lilac">lilac</button><button type="button" data-p="mint">mint</button>
+    <button type="button" data-p="paper">paper</button><button type="button" data-p="coral">coral</button>
+    <button type="button" data-p="shuffle">shuffle ↻</button>
+  </div>
+
+  <footer>Made by <a href="https://github.com/samaarrar" style="color:var(--muted)">samaarrar</a> · Portfolio: <a href="https://samaarrar.github.io" style="color:var(--muted)">samaarrar.github.io</a></footer>
+</div>
+
+<script>
+(()=>{
+const COLORS=[['lilac','#B48CFF'],['mint','#4CD38A'],['paper','#F2F2F4'],['coral','#FF7A5C'],['sky','#4DB2FF'],['sun','#FFD45E']];
+const PRESETS={lilac:{px:24,py:12,rad:21,c:'#B48CFF'},mint:{px:36,py:16,rad:6,c:'#4CD38A'},paper:{px:16,py:10,rad:0,c:'#F2F2F4'},coral:{px:28,py:20,rad:29,c:'#FF7A5C'}};
+const $=id=>document.getElementById(id);
+const s={px:24,py:12,rad:21,c:'#B48CFF',label:'Say hello'};
+let prev={},pets=0;
+const sw=$('sw');
+COLORS.forEach(([n,c])=>{const b=document.createElement('button');b.type='button';b.style.background=c;b.title=n;b.setAttribute('aria-label',n);b.dataset.c=c;b.onclick=()=>{s.c=c;render()};sw.appendChild(b)});
+function nameOf(c){return (COLORS.find(x=>x[1]===c)||['custom'])[0]}
+function v(key,text){const cls=prev[key]!==undefined&&prev[key]!==text?'va flash':'va';prev[key]=text;return `<span class="${cls}">${text}</span>`}
+function render(){
+  const b=$('btn');
+  b.style.padding=`${s.py}px ${s.px}px`;b.style.borderRadius=`${s.rad}px`;b.style.background=s.c;b.textContent=s.label||' ';
+  $('px').value=s.px;$('py').value=s.py;$('rad').value=s.rad;
+  $('pxo').textContent=s.px+'px';$('pyo').textContent=s.py+'px';$('rado').textContent=s.rad+'px';
+  [...sw.children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===s.c));
+  requestAnimationFrame(()=>setTimeout(()=>{const r=b.getBoundingClientRect();$('size').textContent=`${Math.round(r.width)} × ${Math.round(r.height)}`},460));
+  $('css').innerHTML=
+`<span class="sl">.button</span> {
+  <span class="pr">padding</span>: ${v('p',`${s.py}px ${s.px}px`)};
+  <span class="pr">border-radius</span>: ${v('r',`${s.rad}px`)};
+  <span class="pr">background</span>: <span class="sw" style="background:${s.c}"></span>${v('c',s.c)};
+  <span class="cm">/* theme: ${nameOf(s.c)} */</span>
+}`;
+}
+['px','py','rad'].forEach(k=>$(k).addEventListener('input',e=>{s[k]=+e.target.value;render()}));
+$('txt').addEventListener('input',e=>{s.label=e.target.value;render()});
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{
+  let p=PRESETS[b.dataset.p];
+  if(!p){p={px:8+Math.round(Math.random()*40),py:6+Math.round(Math.random()*22),rad:Math.round(Math.random()*40),c:COLORS[Math.floor(Math.random()*COLORS.length)][1]}}
+  Object.assign(s,p);render()});
+$('btn').addEventListener('click',e=>{
+  pets++;$('hint').textContent='pets: '+pets;
+  const cat=$('cat');cat.classList.add('hop');setTimeout(()=>cat.classList.remove('hop'),350);
+  const cv=$('canvas'),r=cat.getBoundingClientRect(),cr=cv.getBoundingClientRect();
+  for(let i=0;i<3;i++){const h=document.createElement('span');h.className='heart';h.textContent='♥';
+    h.style.left=(r.left-cr.left+r.width/2-5+(i-1)*10)+'px';h.style.top=(r.top-cr.top)+'px';h.style.setProperty('--dx',((i-1)*18)+'px');
+    cv.appendChild(h);setTimeout(()=>h.remove(),1000)}
+});
+$('copy').addEventListener('click',async()=>{
+  const t=$('css').innerText;
+  try{await navigator.clipboard.writeText(t);$('copy').textContent='Copied'}
+  catch(_){const r=document.createRange();r.selectNodeContents($('css'));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);$('copy').textContent='Selected, press ⌘C'}
+  setTimeout(()=>$('copy').textContent='Copy CSS',1600);
+});
+render();
+})();
+</script>
+
+</body>
+</html>
